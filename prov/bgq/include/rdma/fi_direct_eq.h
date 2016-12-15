@@ -76,7 +76,7 @@ struct fi_bgq_cntr {
 
 #define FI_BGQ_CQ_CONTEXT_EXT		(0x8000000000000000ull)
 #define FI_BGQ_CQ_CONTEXT_MULTIRECV	(0x4000000000000000ull)
-
+#define FI_BGQ_CQ_CONTEXT_READ		(0x2000000000000000ull)
 
 union fi_bgq_context {
 	struct fi_context		context;
@@ -255,6 +255,34 @@ int fi_bgq_cq_enqueue_completed (struct fi_bgq_cq * bgq_cq,
 	return 0;
 }
 
+static inline
+ssize_t fi_cq_read_context (void * context, void * cq_entry, const enum fi_cq_format format)
+{
+	const union fi_bgq_context * const bgq_context = (const union fi_bgq_context * const) context;
+	struct fi_cq_tagged_entry * const entry = (struct fi_cq_tagged_entry * const) cq_entry;
+
+	assert((bgq_context->flags & FI_BGQ_CQ_CONTEXT_EXT)==0);
+	assert(FI_CQ_FORMAT_TAGGED == format);
+
+	const uint64_t flags = bgq_context->flags;
+	const uint64_t byte_counter = bgq_context->byte_counter;
+	if ((flags & FI_BGQ_CQ_CONTEXT_READ) && (0 == byte_counter)) {
+		if ((flags & FI_BGQ_CQ_CONTEXT_MULTIRECV) == 0) {	/* likely */
+			entry->op_context = (void *)context;
+		} else {
+			entry->op_context = (void *)bgq_context->multi_recv_context;
+		}
+		entry->flags = flags;
+		entry->len = bgq_context->len;
+		entry->buf = bgq_context->buf;
+		entry->data = bgq_context->data;
+		entry->tag = bgq_context->tag;
+
+		return FI_SUCCESS;
+	}
+
+	return FI_EAGAIN;
+}
 
 
 static size_t fi_bgq_cq_fill(uintptr_t output,
