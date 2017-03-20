@@ -206,4 +206,15 @@ SHM_INI ;
 #  define SHM_INIT NULL
 #endif
 
-#endif /* _OFI_PROV_H_ */
+#if (HAVE_OPA1X) && (HAVE_OPA1X_DL)
+#  define OPA1X_INI FI_EXT_INI
+#  define OPA1X_INIT NULL
+#elif (HAVE_OPA1X)
+#  define OPA1X_INI INI_SIG(fi_opa1x_ini)
+#  define OPA1X_INIT fi_opa1x_ini()
+OPA1X_INI ;
+#else
+#  define OPA1X_INIT NULL
+#endif
+
+#endif /* _PROV_H_ */

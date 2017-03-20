@@ -500,6 +500,7 @@ libdl_done:
 		if (enable_rxd)
 			ofi_register_provider(RXD_INIT, NULL);
 	}
+	ofi_register_provider(OPA1X_INIT, NULL);
 
 	ofi_register_provider(UDP_INIT, NULL);
 	ofi_register_provider(SOCKETS_INIT, NULL);
