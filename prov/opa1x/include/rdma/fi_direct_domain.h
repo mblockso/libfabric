@@ -29,216 +29,17 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef _FI_PROV_BGQ_DOMAIN_H_
-#define _FI_PROV_BGQ_DOMAIN_H_
+#ifndef _FI_PROV_OPA1X_DIRECT_DOMAIN_H_
+#define _FI_PROV_OPA1X_DIRECT_DOMAIN_H_
 
 #define FABRIC_DIRECT_DOMAIN 1
 
-#include <unistd.h>
-#include <stdint.h>
-#include <pthread.h>
-
-#include "rdma/bgq/fi_bgq_spi.h"
-
-#include "rdma/bgq/fi_bgq_l2atomic.h"
-#include "rdma/bgq/fi_bgq_progress.h"
+#ifdef FABRIC_DIRECT
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct fi_bgq_ep;	/* forward declaration */
-
-struct fi_bgq_bat_entry {
-	uintptr_t	vaddr;
-	uint64_t	paddr;
-};
-
-#define FI_BGQ_DOMAIN_MAX_TX_CTX ((BGQ_MU_NUM_INJ_FIFO_GROUPS-1)*BGQ_MU_NUM_INJ_FIFOS_PER_GROUP)	/* defensively set to the number of mu injection fifos per node */
-#define FI_BGQ_DOMAIN_MAX_RX_CTX ((BGQ_MU_NUM_REC_FIFO_GROUPS-1)*BGQ_MU_NUM_REC_FIFOS_PER_GROUP)	/* defensively set to the number of mu reception fifos per node */
-struct fi_bgq_domain {
-	struct fid_domain	domain_fid;
-	struct fi_bgq_fabric	*fabric;
-
-	enum fi_threading	threading;
-	enum fi_resource_mgmt	resource_mgmt;
-	enum fi_mr_mode		mr_mode;
-	enum fi_progress	data_progress;
-
-	struct {
-		struct l2atomic_lock	lock;
-	} mu;
-
-	struct {
-		uint32_t	max_fifos;
-		uint32_t	max;
-		uint32_t	count;
-		MUSPI_RecFifo_t		*rfifo[BGQ_MU_NUM_REC_FIFOS_PER_GROUP*(BGQ_MU_NUM_REC_FIFO_GROUPS-1)];	/* do not mess with 17th core rec fifos */
-		struct fi_bgq_ep	*ctx[FI_BGQ_DOMAIN_MAX_RX_CTX];
-	} rx;
-
-	struct {
-		uint32_t	count;
-		uint8_t		rget_subgroup_base;
-	} tx;
-
-	uint64_t		num_mr_keys;
-	struct fi_bgq_bat_entry	*bat;	/* only for FI_MR_SCALABLE */
-
-	BG_CoordinateMapping_t	my_coords;
-	struct l2atomic_lock	lock;
-	void			*rfifo_mem;
-	MUSPI_RecFifoSubGroup_t	rfifo_subgroup[BGQ_MU_NUM_FIFO_SUBGROUPS_PER_NODE];
-	MUSPI_InjFifoSubGroup_t	ififo_subgroup[BGQ_MU_NUM_FIFO_SUBGROUPS_PER_NODE];
-
-	struct {
-		MUSPI_GIBarrier_t	barrier;
-		uint32_t		is_leader;
-		uint32_t		leader_tcoord;
-	} gi;
-
-	struct {
-		uint64_t		value;
-		uint64_t		paddr;
-	} zero;
-	struct {
-		uint64_t		value;
-		uint64_t		paddr;
-	} one;
-
-	uint64_t		max_ep;
-
-
-	struct {
-		struct fi_bgq_progress	thread[64];
-		uint64_t		max_threads;
-		uint64_t		num_threads_active;
-		void			*memptr;
-
-	} progress;
-
-
-	uint64_t		subgroups_per_process;
-	struct l2atomic_counter	ref_cnt;
-};
-
-struct fi_bgq_av {
-	struct fid_av		av_fid;
-	struct fi_bgq_domain	*domain;
-	enum fi_av_type		type;
-	void			*map_addr;
-	struct l2atomic_counter	ref_cnt;
-};
-
-struct fi_bgq_mr {
-	struct fid_mr		mr_fid;
-	struct fi_bgq_domain	*domain;
-	const void		*buf;
-	size_t			len;
-	size_t			offset;
-	uint64_t		access;
-	uint64_t		flags;
-	uint64_t		cntr_bflags;
-	struct fi_bgq_cntr	*cntr;
-	struct fi_bgq_ep	*ep;
-};
-
-static inline void
-fi_bgq_domain_bat_read(struct fi_bgq_bat_entry * bat, uint64_t key, uintptr_t *vaddr, uint64_t *paddr)
-{
-	assert(bat);
-	*vaddr = bat[key].vaddr;
-	*paddr = bat[key].paddr;
-}
-
-static inline void *
-fi_bgq_domain_bat_read_vaddr(struct fi_bgq_bat_entry * bat, uint64_t key)
-{
-	assert(bat);
-	return (void*)bat[key].vaddr;
-}
-
-static inline uint64_t
-fi_bgq_domain_bat_read_paddr(struct fi_bgq_bat_entry * bat, uint64_t key)
-{
-	assert(bat);
-	return bat[key].paddr;
-}
-
-static inline void
-fi_bgq_domain_bat_write(struct fi_bgq_domain *bgq_domain, uint64_t requested_key, const void *buf, size_t len)
-{
-	assert(requested_key < bgq_domain->num_mr_keys);
-
-	bgq_domain->bat[requested_key].vaddr = (uintptr_t)buf;
-	if (buf == NULL) {
-		bgq_domain->bat[requested_key].paddr = 0;
-	} else {
-		Kernel_MemoryRegion_t cnk_mr;
-		uint32_t cnk_rc __attribute__ ((unused));
-		cnk_rc = Kernel_CreateMemoryRegion(&cnk_mr, (void *)buf, len);
-		assert(cnk_rc == 0);
-
-		bgq_domain->bat[requested_key].paddr =
-			(uint64_t)cnk_mr.BasePa + ((uint64_t)buf - (uint64_t)cnk_mr.BaseVa);
-	}
-
-	{	/* this "l1p flush" hack is only needed to flush *writes* from a processor cache to the memory system */
-		volatile uint64_t *mu_register =
-			(volatile uint64_t *)(BGQ_MU_STATUS_CONTROL_REGS_START_OFFSET(0, 0) +
-				0x030 - PHYMAP_PRIVILEGEDOFFSET);
-		*mu_register = 0;
-	}
-	ppc_msync();
-}
-
-static inline void
-fi_bgq_domain_bat_clear(struct fi_bgq_domain *bgq_domain, uint64_t key)
-{
-	assert(key < bgq_domain->num_mr_keys);
-
-	bgq_domain->bat[key].vaddr = (uintptr_t)0;
-	bgq_domain->bat[key].paddr = (uint64_t)0;
-
-	{	/* this "l1p flush" hack is only needed to flush *writes* from a processor cache to the memory system */
-		volatile uint64_t *mu_register =
-			(volatile uint64_t *)(BGQ_MU_STATUS_CONTROL_REGS_START_OFFSET(0, 0) +
-				0x030 - PHYMAP_PRIVILEGEDOFFSET);
-		*mu_register = 0;
-	}
-	ppc_msync();
-}
-
-static inline uint32_t
-fi_bgq_domain_get_tx_max(struct fi_bgq_domain *bgq_domain) {
-
-	/*
-	 * The maximum number of tx contexts depends on how many mu injection
-	 * fifos are available and how many rx contexts have been allocated -
-	 * each tx context requires 2 mu injection fifos, and each allocated
-	 * rx context consumes an additional mu injection fifo.
-	 */
-
-	const uint32_t ppn = Kernel_ProcessCount();
-	return ((FI_BGQ_DOMAIN_MAX_TX_CTX / ppn) - bgq_domain->rx.count) / 2;
-}
-
-static inline uint32_t
-fi_bgq_domain_get_rx_max(struct fi_bgq_domain *bgq_domain) {
-
-	/*
-	 * The maximum number of rx contexts depends on how many mu reception
-	 * fifos are available and how many tx contexts have been allocated -
-	 * each rx context requires 1 mu reception fifo and 1 mu injection fifo
-	 */
-
-	const uint32_t ppn = Kernel_ProcessCount();
-
-	return MIN((FI_BGQ_DOMAIN_MAX_RX_CTX / ppn),((FI_BGQ_DOMAIN_MAX_TX_CTX / ppn) - (bgq_domain->tx.count * 2)));
-}
-
-
-#ifdef FABRIC_DIRECT
 static inline int
 fi_domain(struct fid_fabric *fabric, struct fi_info *info,
 	   struct fid_domain **domain, void *context)
@@ -331,19 +132,8 @@ fi_av_remove(struct fid_av *av, fi_addr_t *fi_addr, size_t count, uint64_t flags
 static inline fi_addr_t
 fi_rx_addr(fi_addr_t fi_addr, int rx_index, int rx_ctx_bits)
 {
-	/*
-	 * The 'rx_lsb' field in the uid, located in the upper 4 bytes of the
-	 * fi_addr_t, is 5 bits wide and, for scalable endpoints, represents
-	 * the 'base mu reception fifo id'. To specialize the rx field the
-	 * 'rx index' must be added to the 'rx base'.
-	 *
-	 * This can be done by shifting the 'rx index' 33 bits and adding it
-	 * to the fi_addr_t (which is typedef'd to uint64_t).
-	 */
-
-	assert(rx_ctx_bits <= 4);
-
-	return fi_addr + ((uint64_t)rx_index << 33);
+//	assert(rx_ctx_bits <= 8);
+	return (fi_addr_t) (((uint64_t) rx_index << (64 - rx_ctx_bits)) | fi_addr);
 }
 
 static inline int fi_wait_open(struct fid_fabric *fabric,
@@ -353,10 +143,11 @@ static inline int fi_wait_open(struct fid_fabric *fabric,
 	return -FI_ENOSYS;		/* TODO - implement this */
 }
 
-#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _FI_PROV_BGQ_DOMAIN_H_ */
+#endif /* FABRIC_DIRECT */
+
+#endif /* _FI_PROV_OPA1X_DIRECT_DOMAIN_H_ */

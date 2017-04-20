@@ -155,7 +155,7 @@ static void ofi_ordered_provs_init(void)
 {
 	char *ordered_prov_names[] =
 			{"psm2", "psm", "usnic", "mlx", "verbs","gni",
-			 "bgq", "netdir", "ofi_rxm", "ofi_rxd",
+			 "bgq", "netdir", "ofi_rxm", "ofi_rxd", "opa1x",
 			/* Initialize the socket(s) provider last.  This will result in
 			 * it being the least preferred provider. */
 

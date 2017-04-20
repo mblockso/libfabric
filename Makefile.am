@@ -370,7 +370,7 @@ include prov/psm2/Makefile.include
 include prov/gni/Makefile.include
 include prov/rxm/Makefile.include
 include prov/rxd/Makefile.include
-include prov/bgq/Makefile.include
+include prov/opa1x/Makefile.include
 include prov/mlx/Makefile.include
 include prov/shm/Makefile.include
 include prov/tcp/Makefile.include

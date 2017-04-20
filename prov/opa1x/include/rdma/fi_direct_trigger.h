@@ -29,8 +29,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef _FI_BGQ_DIRECT_TRIGGER_H_
-#define _FI_BGQ_DIRECT_TRIGGER_H_
+#ifndef _FI_PROV_OPA1X_DIRECT_TRIGGER_H_
+#define _FI_PROV_OPA1X_DIRECT_TRIGGER_H_
 
 #define FABRIC_DIRECT_TRIGGER 1
 
@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 #ifdef FABRIC_DIRECT
-/* Size must match struct fi_context */
+/* Size must match struct fi_context2 ? */
 struct fi_triggered_context {
 	enum fi_trigger_event	event_type;
 	union {
@@ -53,4 +53,4 @@ struct fi_triggered_context {
 }
 #endif
 
-#endif
+#endif /* _FI_PROV_OPA1X_DIRECT_TRIGGER_H_ */

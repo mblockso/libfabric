@@ -30,6 +30,6 @@
  * SOFTWARE.
  */
  /*
- * used for exporting BGQ provider
+ * used for exporting OPA1-x provider
  * symbols when building to support FI_DIRECT
  */

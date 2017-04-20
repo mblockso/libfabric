@@ -29,11 +29,13 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef _FI_BGQ_DIRECT_CM_H_
-#define _FI_BGQ_DIRECT_CM_H_
+#ifndef _FI_PROV_OPA1X_DIRECT_CM_H_
+#define _FI_PROV_OPA1X_DIRECT_CM_H_
 
 #ifdef FABRIC_DIRECT
 #define FABRIC_DIRECT_CM 1
+
+
 
 static inline int fi_getname(fid_t fid, void *addr, size_t *addrlen)
 {
@@ -41,6 +43,7 @@ static inline int fi_getname(fid_t fid, void *addr, size_t *addrlen)
 	return ep->cm->getname(fid, addr, addrlen);
 }
 
+#if 0
 static inline int fi_listen(struct fid_pep *pep)
 {
 	return pep->cm->listen(pep);
@@ -70,7 +73,7 @@ static inline int fi_shutdown(struct fid_ep *ep, uint64_t flags)
 {
 	return ep->cm->shutdown(ep, flags);
 }
-
+#endif
 #endif
 
-#endif /* _FI_BGQ_DIRECT_CM_H_ */
+#endif /* _FI_PROV_OPA1X_DIRECT_CM_H_ */

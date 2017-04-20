@@ -290,6 +290,7 @@ enum {
 	FI_PROTO_NETWORKDIRECT,
 	FI_PROTO_PSMX2,
 	FI_PROTO_SHM,
+	FI_PROTO_OPA1X,
 };
 
 /* Mode bits */

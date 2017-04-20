@@ -29,7 +29,7 @@ dnl ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 dnl CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 dnl SOFTWARE.
 dnl
-dnl Configury specific to the libfabrics BGQ provider
+dnl Configury specific to the libfabrics OPA1-x provider
 
 dnl Called to configure this provider
 dnl
@@ -38,98 +38,64 @@ dnl
 dnl $1: action if configured successfully
 dnl $2: action if not configured successfully
 dnl
-AC_DEFUN([FI_BGQ_CONFIGURE],[
-	# Determine if we can support the bgq provider
-	bgq_happy=0
-	bgq_direct=0
+AC_DEFUN([FI_OPA1X_CONFIGURE],[
+	dnl Determine if we can support the opa1x provider
+	opa1x_happy=0
+	opa1x_direct=0
 
-	AS_IF([test x"$enable_bgq" != x"no"],[
-		AC_MSG_CHECKING([for direct bgq provider])
-		AS_IF([test x"$enable_direct" != x"bgq"],
+	AS_IF([test x"$enable_opa1x" != x"no"],[
+
+
+		AC_MSG_CHECKING([for direct opa1x provider])
+		AS_IF([test x"$enable_direct" != x"opa1x"],
 			[AC_MSG_RESULT([no])],
 			[AC_MSG_RESULT([yes])
 
-			bgq_driver=/bgsys/drivers/ppcfloor
-			AC_SUBST(bgq_driver)
-			AC_ARG_WITH([bgq-driver],
-				[AS_HELP_STRING([--with-bgq-driver=@<:@BGQ driver installation path@:>@],
-					[Provide path to where BGQ system headers are installed])
-				],
-				[bgq_driver=$with_bgq_driver])
+			dnl AS_CASE([x$FABRIC_DIRECT_PROGRESS],
+			dnl	[xauto], [FABRIC_DIRECT_PROGRESS_MODE=FI_PROGRESS_AUTO],
+			dnl	[xmanual], [FABRIC_DIRECT_PROGRESS_MODE=FI_PROGRESS_MANUAL],
+			dnl	[xruntime], [FABRIC_DIRECT_PROGRESS_MODE=FI_PROGRESS_UNSPEC],
+			dnl	[FABRIC_DIRECT_PROGRESS_MODE=FI_PROGRESS_MANUAL])
 
-			bgq_driver_CPPFLAGS="-I$bgq_driver -I$bgq_driver/spi/include/kernel/cnk"
-			CPPFLAGS="$bgq_driver_CPPFLAGS $CPPFLAGS"
-
-			AC_CHECK_HEADER(hwi/include/bqc/MU_Descriptor.h,
-				[bgq_happy=1],
-				[bgq_happy=0])
-
-			bgq_external_source=auto
-			AC_SUBST(bgq_external_source)
-			AC_ARG_WITH([bgq-src],
-				[AS_HELP_STRING([--with-bgq-src(=DIR)],
-					[bgq opensource distribution @<:@default=auto@:>@])
-				],
-				[bgq_external_source=$with_bgq_src])
-
-			AS_IF([test x"$bgq_external_source" == x"auto"], [
-				for bgq_dir in `ls -r /bgsys/source`; do
-					AC_MSG_CHECKING([for bgq opensource distribution])
-					AS_IF([test -f /bgsys/source/$bgq_dir/spi/src/kernel/cnk/memory_impl.c],
-						bgq_external_source="/bgsys/source/$bgq_dir"
-						AC_MSG_RESULT([$bgq_external_source])
-						break)
-				done
-				AS_IF([test x"$bgq_external_source" == x"auto"], [
-					bgq_happy=0
-					AC_MSG_RESULT([no])])
-			])
-
-			AS_IF([test ! -f $bgq_external_source/spi/src/kernel/cnk/memory_impl.c], [
-				AC_MSG_ERROR([unable to locate the bgq opensource distribution])])
-
-			AC_ARG_WITH([bgq-progress],
-				[AS_HELP_STRING([--with-bgq-progress(=auto|manual|runtime)],
-					[Specify the bgq FABRIC_DIRECT progess mode  @<:@default=manual@:>@])
-				])
-
-			AS_CASE([$with_bgq_progress],
-				[auto], [BGQ_FABRIC_DIRECT_PROGRESS=FI_PROGRESS_AUTO],
-				[manual], [BGQ_FABRIC_DIRECT_PROGRESS=FI_PROGRESS_MANUAL],
-				[runtime], [BGQ_FABRIC_DIRECT_PROGRESS=FI_PROGRESS_UNSPEC],
-				[BGQ_FABRIC_DIRECT_PROGRESS=FI_PROGRESS_MANUAL])
-
-			AC_SUBST(bgq_fabric_direct_progress, [$BGQ_FABRIC_DIRECT_PROGRESS])
-
-			dnl Only FI_AV_MAP is supported by the bgq provider
-			BGQ_FABRIC_DIRECT_AV=FI_AV_MAP
-			AC_SUBST(bgq_fabric_direct_av, [$BGQ_FABRIC_DIRECT_AV])
-
-			AC_ARG_WITH([bgq-mr],
-				[AS_HELP_STRING([--with-bgq-mr(=scalable|basic)],
-					[Specify the bgq FABRIC_DIRECT mr mode  @<:@default=scalable@:>@])
-				])
-
-			AS_CASE([$with_bgq_mr],
-				[scalable], [BGQ_FABRIC_DIRECT_MR=FI_MR_SCALABLE],
-				[basic], [BGQ_FABRIC_DIRECT_MR=FI_MR_BASIC],
-				[BGQ_FABRIC_DIRECT_MR=FI_MR_SCALABLE])
-
-			AC_SUBST(bgq_fabric_direct_mr, [$BGQ_FABRIC_DIRECT_MR])
-
-			dnl Only FI_THREAD_ENDPOINT is supported by the bgq provider
-			BGQ_FABRIC_DIRECT_THREAD=FI_THREAD_ENDPOINT
-			AC_SUBST(bgq_fabric_direct_thread, [$BGQ_FABRIC_DIRECT_THREAD])
+			dnl Only FI_PROGRESS_MANUAL is supported by the opa1x provider
+			FABRIC_DIRECT_PROGRESS_MODE=FI_PROGRESS_MANUAL
+			AC_SUBST(fabric_direct_progress, [$FABRIC_DIRECT_PROGRESS_MODE])
+			AC_DEFINE_UNQUOTED(FABRIC_DIRECT_PROGRESS, [$FABRIC_DIRECT_PROGRESS_MODE], [fabric direct progress])
 
 
-			AC_CONFIG_FILES([prov/bgq/include/rdma/fi_direct.h])
+			AS_CASE([x$FABRIC_DIRECT_AV],
+				[xmap], [FABRIC_DIRECT_AV_MODE=FI_AV_MAP],
+				[xtable], [FABRIC_DIRECT_AV_MODE=FI_AV_TABLE],
+				[xruntime], [FABRIC_DIRECT_AV_MODE=FI_AV_UNSPEC],
+				[FABRIC_DIRECT_AV_MODE=FI_AV_MAP])
+
+			AC_SUBST(fabric_direct_av, [$FABRIC_DIRECT_AV_MODE])
+			AC_DEFINE_UNQUOTED(FABRIC_DIRECT_AV, [$FABRIC_DIRECT_AV_MODE], [fabric direct address vector])
+
+
+			AS_CASE([x$FABRIC_DIRECT_MR],
+				[xscalable], [OPA1X_FABRIC_DIRECT_MR_MODE=FI_MR_SCALABLE],
+				[xbasic], [OPA1X_FABRIC_DIRECT_MR_MODE=FI_MR_BASIC],
+				[FABRIC_DIRECT_MR_MODE=FI_MR_SCALABLE])
+
+			AC_SUBST(fabric_direct_mr, [$FABRIC_DIRECT_MR_MODE])
+			AC_DEFINE_UNQUOTED(FABRIC_DIRECT_MR, [$FABRIC_DIRECT_MR_MODE], [fabric direct memory region])
+
+
+			dnl Only FI_THREAD_ENDPOINT is supported by the opa1x provider
+			FABRIC_DIRECT_THREAD_MODE=FI_THREAD_ENDPOINT
+
+			AC_SUBST(fabric_direct_thread, [$FABRIC_DIRECT_THREAD_MODE])
+			AC_DEFINE_UNQUOTED(FABRIC_DIRECT_THREAD, [$FABRIC_DIRECT_THREAD_MODE], [fabric direct thread])
+
+			opa1x_happy=1
 		])
 	])
 
-	AS_IF([test $bgq_happy -eq 1], [$1], [$2])
+	AS_IF([test $opa1x_happy -eq 1], [$1], [$2])
 ])
 
 dnl A separate macro for AM CONDITIONALS, since they cannot be invoked
 dnl conditionally
-AC_DEFUN([FI_BGQ_CONDITIONALS],[
+AC_DEFUN([FI_OPA1X_CONDITIONALS],[
 ])

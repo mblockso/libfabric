@@ -29,83 +29,96 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-if HAVE_BGQ
-bgq_files = prov/bgq/src/fi_bgq_atomic.c \
-		prov/bgq/src/fi_bgq_av.c \
-		prov/bgq/src/fi_bgq_spi.c \
-		prov/bgq/src/fi_bgq_cm.c \
-		prov/bgq/src/fi_bgq_cntr.c \
-		prov/bgq/src/fi_bgq_cq.c \
-		prov/bgq/src/fi_bgq_domain.c \
-		prov/bgq/src/fi_bgq_ep.c \
-		prov/bgq/src/fi_bgq_fabric.c \
-		prov/bgq/src/fi_bgq_info.c \
-		prov/bgq/src/fi_bgq_init.c \
-		prov/bgq/src/fi_bgq_mr.c \
-		prov/bgq/src/fi_bgq_msg.c \
-		prov/bgq/src/fi_bgq_rma.c \
-		prov/bgq/src/fi_bgq_sep.c \
-		prov/bgq/src/fi_bgq_tagged.c \
-		prov/bgq/src/fi_bgq_node.c \
-		prov/bgq/src/fi_bgq_progress.c \
-		prov/bgq/src/fi_bgq_pmi.c
+if HAVE_OPA1X
+opa1x_files =									\
+		prov/opa1x/src/fi_opa1x_atomic.c				\
+		prov/opa1x/src/fi_opa1x_av.c					\
+		prov/opa1x/src/fi_opa1x_cm.c					\
+		prov/opa1x/src/fi_opa1x_cntr.c					\
+		prov/opa1x/src/fi_opa1x_cq.c					\
+		prov/opa1x/src/fi_opa1x_domain.c				\
+		prov/opa1x/src/fi_opa1x_ep.c					\
+		prov/opa1x/src/fi_opa1x_eq.c					\
+		prov/opa1x/src/fi_opa1x_fabric.c				\
+		prov/opa1x/src/fi_opa1x_info.c					\
+		prov/opa1x/src/fi_opa1x_init.c					\
+		prov/opa1x/src/fi_opa1x_mr.c					\
+		prov/opa1x/src/fi_opa1x_msg.c					\
+		prov/opa1x/src/fi_opa1x_rma.c					\
+		prov/opa1x/src/fi_opa1x_sep.c					\
+		prov/opa1x/src/fi_opa1x_hfi1.c					\
+		prov/opa1x/src/fi_opa1x_shm.c					\
+		prov/opa1x/src/fi_opa1x_reliability.c				\
+		prov/opa1x/src/fi_opa1x_tagged.c				\
+		prov/opa1x/external/psm2/opa/opa_service.c			\
+		prov/opa1x/external/psm2/opa/opa_debug.c			\
+		prov/opa1x/external/psm2/opa/opa_sysfs.c			\
+		prov/opa1x/external/psm2/opa/opa_proto.c			\
+		prov/opa1x/external/psm2/opa/opa_utils.c
 
-bgq_files_nodist = prov/bgq/external/memory_impl.c
+opa1x_CPPFLAGS =								\
+		-I$(builddir)/prov/opa1x/include				\
+		-I$(srcdir)/prov/opa1x/include					\
+		-I$(srcdir)/prov/opa1x/external/psm2				\
+		-I$(srcdir)/prov/opa1x/external/psm2/include			\
+		-I$(srcdir)/prov/opa1x/external/psm2/include/linux-i386		\
+		-I$(srcdir)/prov/opa1x/external/psm2/ptl_ips
 
-bgq_CPPFLAGS = -I@bgq_driver@ -I@bgq_driver@/spi/include/kernel/cnk -I$(builddir)/prov/bgq/include -I$(srcdir)/prov/bgq/include
-bgq_LDFLAGS = -static
+opa1x_LIBS = -luuid
 
-prov/bgq/external/memory_impl.c: @bgq_external_source@/spi/src/kernel/cnk/memory_impl.c
-	@${MKDIR_P} $(@D)
-	@cp $< $@
-
-if HAVE_BGQ_DL
-pkglib_LTLIBRARIES += libbgq-fi.la
-libbgq_fi_la_SOURCES = $(bgq_files) $(common_srcs)
-nodist_libbgq_fi_la_SOURCES = $(bgq_files_nodist)
-libbgq_fi_la_CPPFLAGS = $(AM_CPPFLAGS) $(bgq_CPPFLAGS)
-libbgq_fi_la_LDFLAGS = \
-    -module -avoid-version -export-dynamic $(bgq_LDFLAGS)
-libbgq_fi_la_LIBADD = $(linkback) $(bgq_LIBS)
-libbgq_fi_la_DEPENDENCIES = $(linkback)
+if HAVE_OPA1X_DL
+pkglib_LTLIBRARIES += libopa1x-fi.la
+libopa1x_fi_la_SOURCES = $(opa1x_files) $(common_srcs)
+nodist_libopa1x_fi_la_SOURCES = $(opa1x_files_nodist)
+libopa1x_fi_la_CPPFLAGS = $(AM_CPPFLAGS) $(opa1x_CPPFLAGS)
+libopa1x_fi_la_LDFLAGS = \
+    -module -avoid-version -export-dynamic $(opa1x_LDFLAGS)
+libopa1x_fi_la_LIBADD = $(linkback) $(opa1x_LIBS)
+libopa1x_fi_la_DEPENDENCIES = $(linkback)
 else
-src_libfabric_la_SOURCES += $(bgq_files)
-nodist_src_libfabric_la_SOURCES += $(bgq_files_nodist)
-src_libfabric_la_CPPFLAGS += $(bgq_CPPFLAGS)
-src_libfabric_la_LDFLAGS += $(bgq_LDFLAGS)
-src_libfabric_la_LIBADD += $(bgq_LIBS)
+src_libfabric_la_SOURCES += $(opa1x_files)
+nodist_src_libfabric_la_SOURCES += $(opa1x_files_nodist)
+src_libfabric_la_CPPFLAGS += $(opa1x_CPPFLAGS)
+src_libfabric_la_LDFLAGS += $(opa1x_LDFLAGS)
+src_libfabric_la_LIBADD += $(opa1x_LIBS)
 endif
 
-sbin_PROGRAMS = fi_bgq_agent0 fi_bgq_agent1
-fi_bgq_agent1_SOURCES = prov/bgq/src/fi_bgq_agent.c
-fi_bgq_agent1_CPPFLAGS = $(AM_CPPFLAGS) $(bgq_CPPFLAGS)
-fi_bgq_agent1_LDFLAGS = -all-static $(bgq_LDFLAGS) -Wl,--script=@bgq_driver@/cnk/tools/AppAgent1.lds
-fi_bgq_agent0_SOURCES = $(fi_bgq_agent1_SOURCES)
-fi_bgq_agent0_CPPFLAGS = $(fi_bgq_agent1_CPPFLAGS)
-fi_bgq_agent0_LDFLAGS = -all-static $(bgq_LDFLAGS) -Wl,--script=@bgq_driver@/cnk/tools/AppAgent0.lds
+include $(top_srcdir)/prov/opa1x/src/test/Makefile.include
 
-include $(top_srcdir)/prov/bgq/src/test/Makefile.include
+rdma_opa1xincludedir = $(includedir)/rdma/opa1x
 
-rdma_bgqincludedir = $(includedir)/rdma/bgq
+rdma_opa1xinclude_HEADERS =
 
-rdma_bgqinclude_HEADERS =
+noinst_HEADERS =
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_addr.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_atomic_fifo.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_atomic.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_compiler.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_domain.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_endpoint.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_fabric.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_fabric_hfi1.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_fabric_shm.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_hfi1_transport.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_hfi1_progress.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_eq.h		\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x.h		\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_hfi1.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_hfi1_packet.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_internal.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_node.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_progress.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_reliability.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_rma.h		\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_shm.h		\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_shm_transport.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_shm_progress.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_tagged.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_timer.h	\
+	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/opa1x/fi_opa1x_trigger.h
 
-# internal utility functions shared by in-tree providers:
-if HAVE_DIRECT
-nodist_rdma_bgqinclude_HEADERS = \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_compiler.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_hwi.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_mu.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_spi.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_node.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_progress.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_flight_recorder.h \
-	$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include/rdma/bgq/fi_bgq_l2atomic.h
-endif HAVE_DIRECT
+prov_install_man_pages += man/man7/fi_opa1x.7
 
-prov_install_man_pages += man/man7/fi_bgq.7
+endif #HAVE_OPA1X
 
-endif #HAVE_BGQ
-
-prov_dist_man_pages += man/man7/fi_bgq.7
+prov_dist_man_pages += man/man7/fi_opa1x.7
