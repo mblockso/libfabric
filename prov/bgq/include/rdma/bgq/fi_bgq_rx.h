@@ -343,6 +343,8 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 
 	const uint64_t immediate_data = pkt->hdr.pt2pt.immediate_data;
 
+	const uint64_t flags = context->flags;
+
 	if (packet_type & FI_BGQ_MU_PACKET_TYPE_EAGER) {
 #ifdef FI_BGQ_TRACE
         fprintf(stderr,"complete_receive_operation - packet_type & FI_BGQ_MU_PACKET_TYPE_EAGER\n");
@@ -375,6 +377,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 
 
 			/* post a completion event for the individual receive */
+			if (0 == (flags & FI_BGQ_CQ_CONTEXT_READ))
 			fi_bgq_cq_enqueue_completed(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 		} else if (send_len <= recv_len) {
@@ -390,6 +393,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 			context->byte_counter = 0;
 
 			/* post a completion event for the individual receive */
+			if (0 == (flags & FI_BGQ_CQ_CONTEXT_READ))
 			fi_bgq_cq_enqueue_completed(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 		} else {	/* truncation - unlikely */
@@ -477,6 +481,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 			context->byte_counter += 1;
 
 			/* post a completion event for the individual receive */
+			if (0 == (flags & FI_BGQ_CQ_CONTEXT_READ))
 			fi_bgq_cq_enqueue_pending(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 		} else if (xfer_len <= recv_len) {
@@ -492,6 +497,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 			byte_counter_vaddr = (uint64_t)&context->byte_counter;
 
 			/* post a completion event for the individual receive */
+			if (0 == (flags & FI_BGQ_CQ_CONTEXT_READ))
 			fi_bgq_cq_enqueue_pending(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 		} else {
@@ -793,6 +799,7 @@ void process_rfifo_packet_optimized (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu
 
 						/* post a completion event for the multi-receive */
 						context->byte_counter = 0;
+			if (0 == (context->flags & FI_BGQ_CQ_CONTEXT_READ))
 						fi_bgq_cq_enqueue_completed(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 					}
@@ -1181,6 +1188,7 @@ int process_mfifo_context (struct fi_bgq_ep * bgq_ep, const unsigned poll_msg,
 				context->data = uepkt->hdr.pt2pt.immediate_data;
 
 				/* post a completion event for the receive */
+			if (0 == (context->flags & FI_BGQ_CQ_CONTEXT_READ))
 				fi_bgq_cq_enqueue_completed(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 
 				found_match = 1;
@@ -1342,6 +1350,7 @@ int process_mfifo_context (struct fi_bgq_ep * bgq_ep, const unsigned poll_msg,
 
 						/* post a completion event for the multi-receive */
 						context->byte_counter = 0;
+			if (0 == (context->flags & FI_BGQ_CQ_CONTEXT_READ))
 						fi_bgq_cq_enqueue_completed(bgq_ep->recv_cq, context, 0);	/* TODO - IS lock required? */
 					}
 					else {
