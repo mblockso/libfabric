@@ -198,7 +198,6 @@ static int fi_bgq_mu_init(struct fi_bgq_domain *bgq_domain,
 		bgq_domain->rx.max += 4;	/* initialized 4 mu reception fifos, 1 mu reception fifo is used in each fi rx ctx */
 	}
 
-	bgq_domain->tx.count = 0;
 
 	/* initialize the mu gi barrier */
 	bgq_domain->gi.leader_tcoord = bgq_domain->fabric->node.leader_tcoord;
@@ -209,6 +208,21 @@ static int fi_bgq_mu_init(struct fi_bgq_domain *bgq_domain,
 	}
 
 	bgq_domain->subgroups_per_process = 64 / Kernel_ProcessCount();
+
+
+	const uint32_t threads_per_process = 64 / Kernel_ProcessCount();
+	const uint32_t injfifo_offset = tcoord * threads_per_process;
+
+	for (n = injfifo_offset; n < (injfifo_offset + threads_per_process); ++n) {
+		fi_bgq_spi_injfifo_init(&bgq_domain->tx.injfifo[n],
+			&bgq_domain->tx.injfifo_subgroup[n],
+			1,	/* inj_fifos_to_allocate */
+			FI_BGQ_TX_SIZE,
+			sizeof(union fi_bgq_mu_packet_payload),
+			0,	/* is_remote_get */
+			1);	/* is_top_down */
+	}
+
 
 	l2atomic_lock_release(&bgq_domain->mu.lock);
 

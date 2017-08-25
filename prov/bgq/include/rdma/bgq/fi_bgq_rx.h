@@ -79,6 +79,8 @@ void complete_atomic_operation (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu_pack
 
 	const uint32_t origin = pkt->hdr.atomic.origin_raw & FI_BGQ_MUHWI_DESTINATION_MASK;
 
+	const uint32_t pid = Kernel_ProcessorID();
+
 	if (is_fetch || (op == FI_ATOMIC_READ)) {
 
 		const uint64_t dst_paddr = pkt->payload.atomic_fetch.metadata.dst_paddr;
@@ -86,7 +88,7 @@ void complete_atomic_operation (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu_pack
 		const uint64_t fifo_map = pkt->payload.atomic_fetch.metadata.fifo_map;
 
 		MUHWI_Descriptor_t * desc =
-			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo);
+			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo[pid]);
 
 		qpx_memcpy64((void*)desc, (const void *)&bgq_ep->rx.poll.atomic_dput_model);
 
@@ -96,7 +98,7 @@ void complete_atomic_operation (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu_pack
 		/* locate the payload lookaside slot */
 		uint64_t payload_paddr = 0;
 		void * payload_vaddr =
-			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo,
+			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo[pid],
 				desc, &payload_paddr);
 		desc->Pa_Payload = payload_paddr;
 
@@ -112,7 +114,7 @@ void complete_atomic_operation (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu_pack
 
 		fi_bgq_rx_atomic_dispatch((void*)&pkt->payload.atomic_fetch.data[0], addr, nbytes, dt, op);
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
 
 	} else {
 
@@ -129,14 +131,14 @@ void complete_atomic_operation (struct fi_bgq_ep * bgq_ep, struct fi_bgq_mu_pack
 		const uint64_t is_local = pkt->hdr.atomic.is_local;
 
 		MUHWI_Descriptor_t * desc =
-			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo);
+			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo[pid]);
 
 		qpx_memcpy64((void*)desc, (const void*)&bgq_ep->rx.poll.atomic_cntr_update_model[is_local]);
 
 		desc->PacketHeader.NetworkHeader.pt2pt.Destination.Destination.Destination = origin;
 		desc->PacketHeader.messageUnitHeader.Packet_Types.Direct_Put.Rec_Payload_Base_Address_Id = cntr_bat_id;
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
 	}
 }
 
@@ -242,6 +244,8 @@ fprintf(stderr,"direct-put emulation memcpy vaddr is 0x%016lx nbytes is %lu\n",v
 		}
 	}
 
+	const uint32_t pid = Kernel_ProcessorID();
+
 	unsigned i;
 	for (i = 0; i < ndesc; ++i) {
 
@@ -249,7 +253,7 @@ fprintf(stderr,"direct-put emulation memcpy vaddr is 0x%016lx nbytes is %lu\n",v
 		 * busy-wait until a fifo slot is available ..
 		 */
 		MUHWI_Descriptor_t * desc =
-			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo);
+			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo[pid]);
 
 		qpx_memcpy64((void*)desc, (const void*)&payload[i]);
 
@@ -262,7 +266,7 @@ fflush(stderr);
 			/* locate the payload lookaside slot */
 			uint64_t payload_paddr = 0;
 			void * payload_vaddr =
-				fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo,
+				fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo[pid],
 					desc, &payload_paddr);
 			desc->Pa_Payload = payload_paddr;
 
@@ -287,7 +291,7 @@ fflush(stderr);
 			set_desc_payload_paddr((union fi_bgq_mu_descriptor *)desc, bat);
 
 		}
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
 	}
 #ifdef FI_BGQ_TRACE
 fprintf(stderr,"complete_rma_operation complete\n");
@@ -303,15 +307,17 @@ void inject_eager_completion (struct fi_bgq_ep * bgq_ep,
 	const uint64_t is_local = pkt->hdr.completion.is_local;
 	const uint64_t cntr_paddr = ((uint64_t)pkt->hdr.completion.cntr_paddr_rsh3b) << 3;
 
+	const uint32_t pid = Kernel_ProcessorID();
+
 	MUHWI_Descriptor_t * desc =
-		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo);
+		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo[pid]);
 
 	qpx_memcpy64((void*)desc, (const void*)&bgq_ep->rx.poll.ack_model[is_local]);
 
 	MUSPI_SetRecPayloadBaseAddressInfo(desc, FI_BGQ_MU_BAT_ID_GLOBAL, cntr_paddr);
 	desc->PacketHeader.NetworkHeader.pt2pt.Destination = pkt->hdr.completion.origin;
 
-	MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+	MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
 
 	return;
 }
@@ -570,8 +576,9 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 		 */
 
 		/* busy-wait until a fifo slot is available .. */
+		const uint32_t pid = Kernel_ProcessorID();
 		MUHWI_Descriptor_t * rget_desc =
-			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo);
+			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->rx.poll.injfifo[pid]);
 
 		assert(rget_desc);
 		assert((((uintptr_t)rget_desc)&0x1F) == 0);
@@ -579,7 +586,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 		/* locate the payload lookaside slot */
 		uint64_t payload_paddr = 0;
 		MUHWI_Descriptor_t * payload =
-			(MUHWI_Descriptor_t *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo,
+			(MUHWI_Descriptor_t *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->rx.poll.injfifo[pid],
 				rget_desc, &payload_paddr);
 
 		/* initialize the remote-get descriptor in the injection fifo */
@@ -642,7 +649,7 @@ void complete_receive_operation (struct fi_bgq_ep * bgq_ep,
 		/*
 		 * inject the descriptor
 		 */
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
 	}
 	return;
 }

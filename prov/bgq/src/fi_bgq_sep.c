@@ -140,14 +140,6 @@ static int fi_bgq_tx_ctx(struct fid_ep *sep, int index,
 		return -errno;
 	}
 
-	if (bgq_sep->domain->tx.count >= fi_bgq_domain_get_tx_max(bgq_sep->domain)) {
-		FI_LOG(fi_bgq_global.prov, FI_LOG_DEBUG, FI_LOG_DOMAIN,
-				"TX ctx count exceeded (max %lu, created %lu)\n",
-				fi_bgq_domain_get_tx_max(bgq_sep->domain), bgq_sep->domain->tx.count);
-		errno = FI_EINVAL;
-		return -errno;
-	}
-
 	info.caps = caps;
 	info.mode = attr->mode;
 
@@ -179,8 +171,6 @@ static int fi_bgq_tx_ctx(struct fid_ep *sep, int index,
 	fi_bgq_ref_inc(&bgq_tx_ep->av->ref_cnt, "address vector");
 
 	bgq_tx_ep->sep = container_of(sep, struct fi_bgq_sep, ep_fid);
-
-	++ bgq_sep->domain->tx.count;
 
 	fi_bgq_ref_inc(&bgq_sep->ref_cnt, "scalable endpoint");
 

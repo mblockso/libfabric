@@ -229,10 +229,12 @@ static inline void fi_bgq_atomic_fence (struct fi_bgq_ep * bgq_ep,
 
 	assert(do_cq || do_cntr);
 
+		const uint32_t pid = Kernel_ProcessorID();
+
 		MUHWI_Descriptor_t * model = &bgq_ep->tx.atomic.emulation.fence.mfifo_model;
 
 		MUHWI_Descriptor_t * desc =
-			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+			fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 		qpx_memcpy64((void*)desc, (const void*)model);
 
@@ -247,7 +249,7 @@ static inline void fi_bgq_atomic_fence (struct fi_bgq_ep * bgq_ep,
 
 		/* locate the payload lookaside slot */
 		void * payload =
-			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 				desc, &desc->Pa_Payload);
 
 		if (do_cntr && !do_cq) {	/* likely */
@@ -324,7 +326,7 @@ static inline void fi_bgq_atomic_fence (struct fi_bgq_ep * bgq_ep,
 
 		}
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 }
 
 static inline size_t fi_bgq_atomic_internal(struct fi_bgq_ep *bgq_ep,
@@ -344,8 +346,10 @@ static inline size_t fi_bgq_atomic_internal(struct fi_bgq_ep *bgq_ep,
 	struct fi_bgq_cntr * write_cntr = bgq_ep->tx.write_cntr;
 	const uint64_t do_cntr = enable_cntr && (write_cntr != 0);
 
+	const uint32_t pid = Kernel_ProcessorID();
+
 	MUHWI_Descriptor_t * desc =
-		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 	qpx_memcpy64((void*)desc, (const void*)&bgq_ep->tx.atomic.emulation.mfifo_model);
 
@@ -378,7 +382,7 @@ static inline size_t fi_bgq_atomic_internal(struct fi_bgq_ep *bgq_ep,
 
 		/* locate the payload lookaside slot */
 		void * payload =
-			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 				desc, &desc->Pa_Payload);
 
 		desc->Message_Length = nbytes;
@@ -396,7 +400,7 @@ static inline size_t fi_bgq_atomic_internal(struct fi_bgq_ep *bgq_ep,
 
 		/* locate the payload lookaside slot */
 		union fi_bgq_mu_packet_payload * payload =
-			(union fi_bgq_mu_packet_payload *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+			(union fi_bgq_mu_packet_payload *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 				desc, &desc->Pa_Payload);
 
 		/* initialize the atomic operation metadata in the packet payload */
@@ -440,7 +444,7 @@ static inline size_t fi_bgq_atomic_internal(struct fi_bgq_ep *bgq_ep,
 		}
 	}
 
-	MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+	MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 	return xfer_count;
 }

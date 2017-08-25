@@ -78,8 +78,9 @@ struct fi_bgq_domain {
 	} rx;
 
 	struct {
-		uint32_t	count;
-		uint8_t		rget_subgroup_base;
+		struct fi_bgq_spi_injfifo	injfifo[64];
+		MUSPI_InjFifoSubGroup_t		injfifo_subgroup[64];
+		uint8_t				rget_subgroup_base;
 	} tx;
 
 	uint64_t		num_mr_keys;
@@ -212,29 +213,15 @@ fi_bgq_domain_bat_clear(struct fi_bgq_domain *bgq_domain, uint64_t key)
 static inline uint32_t
 fi_bgq_domain_get_tx_max(struct fi_bgq_domain *bgq_domain) {
 
-	/*
-	 * The maximum number of tx contexts depends on how many mu injection
-	 * fifos are available and how many rx contexts have been allocated -
-	 * each tx context requires 2 mu injection fifos, and each allocated
-	 * rx context consumes an additional mu injection fifo.
-	 */
-
 	const uint32_t ppn = Kernel_ProcessCount();
-	return ((FI_BGQ_DOMAIN_MAX_TX_CTX / ppn) - bgq_domain->rx.count) / 2;
+	return FI_BGQ_DOMAIN_MAX_TX_CTX / ppn;	/* TODO - shouldn't this be essentially "unlimited" ? */
 }
 
 static inline uint32_t
 fi_bgq_domain_get_rx_max(struct fi_bgq_domain *bgq_domain) {
 
-	/*
-	 * The maximum number of rx contexts depends on how many mu reception
-	 * fifos are available and how many tx contexts have been allocated -
-	 * each rx context requires 1 mu reception fifo and 1 mu injection fifo
-	 */
-
 	const uint32_t ppn = Kernel_ProcessCount();
-
-	return MIN((FI_BGQ_DOMAIN_MAX_RX_CTX / ppn),((FI_BGQ_DOMAIN_MAX_TX_CTX / ppn) - (bgq_domain->tx.count * 2)));
+	return FI_BGQ_DOMAIN_MAX_RX_CTX / ppn;
 }
 
 

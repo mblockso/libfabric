@@ -91,8 +91,9 @@ fflush(stderr);
 	const uint64_t fifo_map = fi_bgq_addr_get_fifo_map(bgq_target_addr->fi);
 
 	/* busy-wait until a fifo slot is available .. */
+	const uint32_t pid = Kernel_ProcessorID();
 	MUHWI_Descriptor_t * desc =
-		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 	/* copy the descriptor model into the injection fifo */
 	qpx_memcpy64((void*)desc, (const void *)model);
@@ -103,7 +104,7 @@ fflush(stderr);
 
 	/* locate the payload lookaside slot */
 	MUHWI_Descriptor_t * dput_desc =
-		(MUHWI_Descriptor_t *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+		(MUHWI_Descriptor_t *)fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 			desc, &desc->Pa_Payload);
 	desc->Message_Length = (niov << BGQ_MU_DESCRIPTOR_SIZE_IN_POWER_OF_2);
 
@@ -165,7 +166,7 @@ fflush(stderr);
 fprintf(stderr,"fi_bgq_readv_internal do_cntr && niov < 8 AND (!do_cq)\n");
 fflush(stderr);
 #endif
-			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		} else 	if (niov < 7) {
 
@@ -200,7 +201,7 @@ fflush(stderr);
 			union fi_bgq_mu_packet_hdr * hdr = (union fi_bgq_mu_packet_hdr *) &desc->PacketHeader;
 			hdr->rma.ndesc += 1;
 
-			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 			fi_bgq_cq_enqueue_pending(bgq_ep->send_cq, bgq_context, lock_required);
 
@@ -209,7 +210,7 @@ fflush(stderr);
 			/* the rget/mfifo payload is full - inject the data
 			 * movement descriptors, then inject the counter
 			 * completion descriptor */
-			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 			/* be lazy and do a single recursive call */
 			fi_bgq_readv_internal(bgq_ep,
@@ -227,7 +228,7 @@ fflush(stderr);
 		/* the rget/mfifo payload is full - inject the data
 		 * movement descriptors, then inject any counter or cq
 		 * completion descriptor(s) via a recursive call */
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		fi_bgq_readv_internal(bgq_ep,
 			NULL, 0,		/* no iovec array */
@@ -273,7 +274,7 @@ fflush(stderr);
 		union fi_bgq_mu_packet_hdr * hdr = (union fi_bgq_mu_packet_hdr *) &desc->PacketHeader;
 		hdr->rma.ndesc += 1;
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		fi_bgq_cq_enqueue_pending(bgq_ep->send_cq, bgq_context, lock_required);
 
@@ -282,7 +283,7 @@ fflush(stderr);
 		/* the rget/mfifo payload is full - inject the data
 		 * movement descriptors, then inject the cq completion
 		 * descriptor via a recursive call */
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		fi_bgq_readv_internal(bgq_ep,
 			NULL, 0,		/* no iovec array */
@@ -300,7 +301,7 @@ fflush(stderr);
 		 * at least one data movement operations */
 		assert(niov > 0);
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 	}
 }
 
@@ -334,8 +335,9 @@ static inline ssize_t fi_bgq_inject_write_generic(struct fid_ep *ep,
 	/*
 	 * busy-wait until a fifo slot is available ..
 	 */
+	const uint32_t pid = Kernel_ProcessorID();
 	MUHWI_Descriptor_t * desc =
-		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 	/* copy the descriptor model into the injection fifo */
 	qpx_memcpy64((void*)desc, (const void *)model);
@@ -348,7 +350,7 @@ static inline ssize_t fi_bgq_inject_write_generic(struct fid_ep *ep,
 
 	/* locate the payload lookaside slot */
 	void * payload =
-		fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+		fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 			desc, &desc->Pa_Payload);
 	assert(len <= sizeof(union fi_bgq_mu_packet_payload));
 	memcpy(payload, buf, len);
@@ -381,7 +383,7 @@ static inline ssize_t fi_bgq_inject_write_generic(struct fid_ep *ep,
 	struct fi_bgq_cntr * write_cntr = bgq_ep->write_cntr;
 	if (write_cntr) L2_AtomicStoreAdd(write_cntr->std.l2_vaddr, 1);
 
-	MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+	MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 	ret = fi_bgq_unlock_if_required(&bgq_ep->lock, lock_required);
 	if (ret) return ret;
@@ -432,8 +434,9 @@ static inline void fi_bgq_write_internal (struct fi_bgq_ep * bgq_ep,
 			&bgq_ep->tx.write.emulation.mfifo_model;
 
 	/* busy-wait until a fifo slot is available .. */
+	const uint32_t pid = Kernel_ProcessorID();
 	MUHWI_Descriptor_t * desc =
-		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+		fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 	/* copy the descriptor model into the injection fifo */
 	qpx_memcpy64((void*)desc, (const void *)model);
@@ -448,7 +451,7 @@ static inline void fi_bgq_write_internal (struct fi_bgq_ep * bgq_ep,
 
 		/* locate the payload lookaside slot */
 		void * payload =
-			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo,
+			fi_bgq_spi_injfifo_immediate_payload(&bgq_ep->tx.injfifo[pid],
 				desc, &desc->Pa_Payload);
 
 		memcpy(payload, buf, len);
@@ -478,7 +481,7 @@ static inline void fi_bgq_write_internal (struct fi_bgq_ep * bgq_ep,
 			assert(0);
 		}
 
-		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+		MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		/* FI_TRANSMIT_COMPLETE and FI_DELIVERY_COMPLETE are not supported */
 		assert((tx_op_flags & (FI_COMPLETION | FI_TRANSMIT_COMPLETE)) != (FI_COMPLETION | FI_TRANSMIT_COMPLETE));
@@ -538,19 +541,19 @@ static inline void fi_bgq_write_internal (struct fi_bgq_ep * bgq_ep,
 
 		if (len <= sizeof(union fi_bgq_mu_packet_payload)) {	/* likely */
 
-			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 		} else {
 
 			MUHWI_Descriptor_t model = *desc;
-			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+			MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 			src_paddr += xfer_bytes;
 			len -= xfer_bytes;
 			addr += xfer_bytes;
 
 			while (len > 0) {
-				desc = fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo);
+				desc = fi_bgq_spi_injfifo_tail_wait(&bgq_ep->tx.injfifo[pid]);
 
 				qpx_memcpy64((void*)desc, (const void*)&model);
 
@@ -576,7 +579,7 @@ static inline void fi_bgq_write_internal (struct fi_bgq_ep * bgq_ep,
 		                }
 
 
-				MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo.muspi_injfifo);
+				MUSPI_InjFifoAdvanceDesc(bgq_ep->tx.injfifo[pid].muspi_injfifo);
 
 				src_paddr += xfer_bytes;
 				len -= xfer_bytes;

@@ -177,44 +177,6 @@ int fi_bgq_stx_init (struct fi_bgq_domain *bgq_domain, struct fi_tx_attr *attr,
 		goto err;
 	}
 
-	/*
-	 * Three options for number of injection fifos to allocate for each tx context:
-	 *
-	 * 1. 1 injection fifo
-	 *    - same for all ppn (1..64)
-	 *    - maximizes the number of tx contexts that can be created
-	 *    - simplest implementation
-	 *    - lowest off-node bandwidth
-	 *    - can support multiple domains at all ppn
-	 *    - may be sufficient because only single-packet messages are injected
-	 *
-	 * 2. 11 injection fifos (+a,-a,+b,-b,+c,-c,+d,-d,+e,-e,local)
-	 *    - must use 6 rget fifos (option 1) for 64 ppn
-	 *    - complex implementation
-	 *    - optimial off-node bandwidth
-	 *    - can only support one domain at 64 ppn and 32 ppn
-	 *    - requires injection fifo pinning algorithm
-	 *
-	 * For now, use option 1.
-	 */
-	uint32_t inj_fifos_to_allocate = 1;
-
-	/*
-	 * initialize the transmit injection fifo; begin at fifo 7 of subgroup 15
-	 * and iterate *down* until an unallocated fifo is found
-	 */
-	if (inj_fifos_to_allocate !=
-		fi_bgq_spi_injfifo_init(&bgq_stx->injfifo,
-			&bgq_stx->injfifo_subgroup,
-			inj_fifos_to_allocate,
-			FI_BGQ_TX_SIZE,
-			sizeof(union fi_bgq_mu_packet_payload),
-			0,	/* is_remote_get */
-			1))	/* is_top_down */
-	{
-		goto err;
-	}
-
 	l2atomic_lock_release(&bgq_domain->mu.lock);
 
 	fi_bgq_ref_init(&bgq_domain->fabric->node, &bgq_stx->ref_cnt, "shared context");
@@ -473,8 +435,11 @@ static int fi_bgq_ep_tx_init (struct fi_bgq_ep *bgq_ep,
 	bgq_ep->av_type = (uint32_t) bgq_ep->av->type;
 	bgq_ep->mr_mode = (uint32_t) bgq_domain->mr_mode;
 
-	/* copy the 'shared tx' resources and information */
-	fi_bgq_spi_injfifo_clone(&bgq_ep->tx.injfifo, &bgq_ep->tx.stx->injfifo);
+	/* copy the domain tx resources and information */
+	unsigned i;
+	for (i=0; i<64; ++i) {
+		fi_bgq_spi_injfifo_clone(&bgq_ep->tx.injfifo[i], &bgq_domain->tx.injfifo[i]);
+	}
 
 	BG_CoordinateMapping_t my_coords = bgq_domain->my_coords;
 
@@ -1012,19 +977,10 @@ static int fi_bgq_ep_rx_init(struct fi_bgq_ep *bgq_ep)
 	/* **** acquire the mu lock (node scoped) **** */
 	l2atomic_lock_acquire(&bgq_domain->mu.lock);
 
-	/* create an injection fifo for rendezvous and ack messages */
-
-	const int num_fifos_to_allocate = 1;
-	if (num_fifos_to_allocate !=
-		fi_bgq_spi_injfifo_init(&bgq_ep->rx.poll.injfifo,
-			&bgq_ep->rx.poll.injfifo_subgroup,
-			num_fifos_to_allocate,
-			FI_BGQ_RX_SIZE,
-			sizeof(union fi_bgq_mu_packet_payload),
-			0 /* is_remote_get */,
-			1 /* is_top_down */)) {
-		assert(0);
-		goto err;
+	/* copy the domain tx resources and information */
+	unsigned i;
+	for (i=0; i<64; ++i) {
+		fi_bgq_spi_injfifo_clone(&bgq_ep->rx.poll.injfifo[i], &bgq_domain->tx.injfifo[i]);
 	}
 
 	/*
@@ -2030,8 +1986,10 @@ int fi_bgq_ep_progress_manual_recv (struct fi_bgq_ep *bgq_ep,
 		union fi_bgq_context * context,
 		const uint64_t rx_op_flags,
 		const uint64_t is_context_ext) {
-
-	assert(bgq_ep->rx.poll.injfifo.muspi_injfifo);
+#ifndef NDEBUG
+	const uint32_t pid = Kernel_ProcessorID();
+	assert(bgq_ep->rx.poll.injfifo[pid].muspi_injfifo);
+#endif
 	return process_mfifo_context(bgq_ep, is_msg, 0, context, rx_op_flags, is_context_ext, 1);
 }
 

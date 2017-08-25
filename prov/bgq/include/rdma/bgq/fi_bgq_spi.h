@@ -123,6 +123,9 @@ struct fi_bgq_spi_injfifo {
 	void		*immediate_payload_memory;
 
 	uintptr_t	va_start;
+
+	uint64_t	unused[5];	/* pad to 128 bytes */
+
 } __attribute((aligned(L2_CACHE_LINE_SIZE)));
 
 int fi_bgq_spi_injfifo_init (struct fi_bgq_spi_injfifo *f,
