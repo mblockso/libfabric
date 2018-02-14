@@ -29,14 +29,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x_domain.h"
 #include "rdma/opa1x/fi_opa1x_endpoint.h"
 #include "rdma/opa1x/fi_opa1x.h"
 #include "rdma/opa1x/fi_opa1x_internal.h"
 
-#include <fi_enosys.h>
+#include <ofi_enosys.h>
 
 ssize_t fi_opa1x_sendmsg(struct fid_ep *ep, const struct fi_msg *msg,
 			uint64_t flags)

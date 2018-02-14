@@ -29,12 +29,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x.h"
 #include "rdma/opa1x/fi_opa1x_internal.h"
 #include "rdma/opa1x/fi_opa1x_hfi1.h"
-#include "prov.h"
+#include "ofi_prov.h"
 
 #include "rdma/opa1x/fi_opa1x_addr.h"
 
@@ -414,7 +414,7 @@ static void fi_opa1x_fini()
 static struct fi_provider fi_opa1x_provider = {
 	.name 		= FI_OPA1X_PROVIDER_NAME,
 	.version 	= FI_VERSION(0, 1),
-	.fi_version 	= FI_VERSION(1,5),
+	.fi_version 	= FI_VERSION(1,6),
 	.getinfo	= fi_opa1x_getinfo,
 	.fabric		= fi_opa1x_fabric,
 	.cleanup	= fi_opa1x_fini

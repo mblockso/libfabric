@@ -30,7 +30,7 @@
  * SOFTWARE.
  */
 
-#include <fi.h>
+#include <ofi.h>
 #include "rdma/opa1x/fi_opa1x.h"
 #include "rdma/opa1x/fi_opa1x_internal.h"
 #include "rdma/opa1x/fi_opa1x_hfi1.h"

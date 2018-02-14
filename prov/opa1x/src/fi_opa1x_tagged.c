@@ -29,14 +29,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x.h"
 #include "rdma/opa1x/fi_opa1x_domain.h"
 #include "rdma/opa1x/fi_opa1x_endpoint.h"
 #include "rdma/opa1x/fi_opa1x_tagged.h"
 
-#include <fi_enosys.h>
+#include <ofi_enosys.h>
 
 /*
  * \note The opa1x provider asserts the following mode bits which affect

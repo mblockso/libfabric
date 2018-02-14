@@ -29,14 +29,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x_domain.h"
 #include "rdma/opa1x/fi_opa1x_eq.h"
 #include "rdma/opa1x/fi_opa1x.h"
 #include "rdma/opa1x/fi_opa1x_internal.h"
 
-#include <fi_enosys.h>
+#include <ofi_enosys.h>
 
 #include <errno.h>
 #include <stdlib.h>

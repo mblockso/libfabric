@@ -31,14 +31,14 @@
  */
 #include "rdma/fabric.h"
 
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x_domain.h"
 #include "rdma/opa1x/fi_opa1x_endpoint.h"
 #include "rdma/opa1x/fi_opa1x_eq.h"
 #include "rdma/opa1x/fi_opa1x.h"
 
-#include <fi_enosys.h>
+#include <ofi_enosys.h>
 
 #include <stdio.h>
 #include <stdlib.h>

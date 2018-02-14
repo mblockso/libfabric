@@ -47,7 +47,7 @@
 #include "rdma/opa1x/fi_opa1x_internal.h"
 #include "rdma/opa1x/fi_opa1x_hfi1.h"
 
-#include <fi_enosys.h>
+#include <ofi_enosys.h>
 
 #include "rdma/opa1x/fi_opa1x.h"
 

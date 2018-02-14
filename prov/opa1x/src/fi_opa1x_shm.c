@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <sys/uio.h>
 
-#include <fi.h>
+#include <ofi.h>
 
 #include "rdma/opa1x/fi_opa1x_domain.h"
 #include "rdma/opa1x/fi_opa1x_endpoint.h"
