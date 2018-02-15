@@ -166,7 +166,7 @@ static int fi_opa1x_fillinfo(struct fi_info *fi, const char *node,
 	if (!hints && !node && !service)
 		goto err;
 
-	if (hints && ((hints->mode & FI_CONTEXT) != 0) && ((hints->mode & FI_CONTEXT2) == 0)) {
+	if (hints && (((hints->mode & FI_CONTEXT) != 0) && ((hints->mode & FI_CONTEXT2) == 0))) {
 		FI_WARN(fi_opa1x_global.prov, FI_LOG_FABRIC,
 			"FI_CONTEXT mode is not supported. Use FI_CONTEXT2 mode instead.\n");
 		errno = FI_ENODATA;
@@ -183,6 +183,7 @@ static int fi_opa1x_fillinfo(struct fi_info *fi, const char *node,
 	/* clear modes that we do not require */
 	fi->mode &= (~FI_LOCAL_MR);
 	fi->mode &= (~FI_MSG_PREFIX);
+	fi->mode &= (~FI_CONTEXT);
 
 	fi->addr_format = FI_ADDR_OPA1X;
 	fi->src_addrlen = sizeof(union fi_opa1x_addr);
@@ -252,7 +253,6 @@ static int fi_opa1x_fillinfo(struct fi_info *fi, const char *node,
 	fi->fabric_attr->prov_version = FI_OPA1X_PROVIDER_VERSION;
 
 	memcpy(fi->tx_attr, fi_opa1x_global.default_tx_attr, sizeof(*fi->tx_attr));
-
 	if (hints->tx_attr) {
 
 		/*
