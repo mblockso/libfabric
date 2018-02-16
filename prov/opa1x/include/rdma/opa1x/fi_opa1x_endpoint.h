@@ -527,7 +527,7 @@ uint64_t is_match (const union fi_opa1x_hfi1_packet_hdr * const hdr, union fi_op
 		context, context->src_addr, context->ignore, context->tag, src_addr.uid.fi);
 	fprintf(stderr, "%s:%s():%d hdr->match.slid = 0x%04x (%u), hdr->match.origin_cx = 0x%02x (%u), hdr->reliability.origin_reliability_rx = 0x%02x (%u), origin_uid_fi = 0x%08x\n", __FILE__, __func__, __LINE__,
 		hdr->match.slid, hdr->match.slid, hdr->match.origin_cx, hdr->match.origin_cx, hdr->reliability.origin_reliability_rx, hdr->reliability.origin_reliability_rx, origin_uid_fi);
-	fprintf(stderr, "%s:%s():%d hdr->match.ofi_tag = 0x%016lx, target_tag_and_not_ignore = 0x%016lx, origin_tag_and_not_ignore = 0x%016lx, FI_ADDR_UNSPEC = 0x%08x\n", __FILE__, __func__, __LINE__,
+	fprintf(stderr, "%s:%s():%d hdr->match.ofi_tag = 0x%016lx, target_tag_and_not_ignore = 0x%016lx, origin_tag_and_not_ignore = 0x%016lx, FI_ADDR_UNSPEC = 0x%08lx\n", __FILE__, __func__, __LINE__,
 		hdr->match.ofi_tag, target_tag_and_not_ignore, origin_tag_and_not_ignore, FI_ADDR_UNSPEC);
 	fprintf(stderr, "%s:%s():%d answer = %lu\n", __FILE__, __func__, __LINE__, answer);
 #endif
@@ -1471,10 +1471,7 @@ ssize_t fi_opa1x_ep_rx_recv (struct fi_opa1x_ep *opa1x_ep,
 	opa1x_context->len = len;
 	opa1x_context->buf = buf;
 
-	rx_caps ^= FI_DIRECTED_RECV;
-
 	if (rx_caps & FI_DIRECTED_RECV) {
-
 		if (av_type == FI_AV_TABLE) {		/* constand compile-time expression */
 			if (likely(src_addr != FI_ADDR_UNSPEC)) {
 				opa1x_context->src_addr = opa1x_ep->rx.av_addr[src_addr].fi;
