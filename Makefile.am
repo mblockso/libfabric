@@ -110,6 +110,17 @@ util_fi_strerror_LDADD = $(linkback)
 util_fi_pingpong_SOURCES = \
 	util/pingpong.c
 util_fi_pingpong_LDADD = $(linkback)
+if HAVE_DIRECT
+if FI_DIRECT_H_IN
+util_fi_pingpong_CPPFLAGS = $(AM_CPPFLAGS) -DFABRIC_DIRECT \
+	-I$(top_builddir)/prov/$(PROVIDER_DIRECT)/include
+else
+util_fi_pingpong_CPPFLAGS = $(AM_CPPFLAGS) -DFABRIC_DIRECT \
+	-I$(top_srcdir)/prov/$(PROVIDER_DIRECT)/include
+endif
+else
+util_fi_pingpong_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/include
+endif
 
 nodist_src_libfabric_la_SOURCES =
 src_libfabric_la_SOURCES =			\
